@@ -40,7 +40,7 @@
         <router-link v-for="post in sortedPosts" 
                     :key="post.id"
                     :to="{ name: 'post-details', params: { id: post.id }}"
-                    class="block group">
+                    class="block group ">
           <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 overflow-hidden">
             <div class="p-8">
               <div class="flex items-start space-x-6">
@@ -120,18 +120,6 @@
       </div>
 
       <!-- Сообщение об отсутствии постов -->
-      <div v-else class="text-center py-16 animate-fade-in">
-        <div class="inline-block p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
-          <div class="text-gray-500 dark:text-gray-400 mb-8">
-            <i class="fas fa-inbox text-7xl mb-6 animate-bounce"></i>
-            <p class="text-2xl font-light">В этой категории пока нет постов</p>
-          </div>
-          <router-link :to="{ name: 'create-post', params: { categoryId: categoryId } }"
-                      class="inline-block px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg font-medium">
-            Создать первый пост
-          </router-link>
-        </div>
-      </div>
     </div>
   </div>
 </template>
