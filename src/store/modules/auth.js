@@ -153,11 +153,14 @@ const actions = {
       
       const userDataToStore = { 
         uid: user.uid, 
-        username: userData.username, 
         email: userData.email,
         role: role,
         emailVerified: false,
-        profile: userProfile,
+        profile: {
+          username: userData.username,
+          avatarUrl: '/image/empty_avatar.png',
+          signature: 'Новый пользователь'
+        },
         settings: userDataForDB.settings
       };
       
@@ -327,32 +330,16 @@ const actions = {
 
   async logout({ commit, state }) {
     try {
+      // Сначала выходим из Firebase Auth
       await signOut(auth);
       
-      // Очищаем все данные пользователя из state
+      // Очищаем состояние Vuex
       commit('SET_USER', null);
       commit('SET_AUTHENTICATED', false);
       commit('SET_TOKEN', null);
       
-      // Полностью очищаем localStorage
+      // Полностью очищаем localStorage одной командой
       localStorage.clear();
-      
-      // Для надежности явно удаляем каждый ключ
-      localStorage.removeItem('user');
-      localStorage.removeItem('userToken');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('username');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('emailVerified');
-      localStorage.removeItem('userAvatarUrl');
-      localStorage.removeItem('userSignature');
-      localStorage.removeItem('userSettings');
-      localStorage.removeItem('lastVisitedForum');
-      localStorage.removeItem('lastReadPosts');
-      localStorage.removeItem('darkMode');
-      localStorage.removeItem('theme');
-      localStorage.removeItem('language');
-      localStorage.removeItem('notifications');
       
       // Отписываемся от слушателя авторизации
       if (state.authUnsubscribe) {
@@ -360,10 +347,10 @@ const actions = {
         commit('SET_AUTH_UNSUBSCRIBE', null);
       }
 
-      console.log('Logout successful, all data cleared');
+      console.log('Выход выполнен успешно, все данные очищены');
       return true;
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Ошибка при выходе:', error);
       throw error;
     }
   },
@@ -587,11 +574,14 @@ const mutations = {
     if (!user) {
       // Если пользователь null, очищаем весь localStorage
       localStorage.clear();
-    } else if (user.profile) {
-      // Обновляем профиль пользователя в localStorage
-      localStorage.setItem('username', user.profile.username);
-      localStorage.setItem('userAvatarUrl', user.profile.avatarUrl);
-      localStorage.setItem('userSignature', user.profile.signature || '');
+    } else {
+      // Сохраняем полные данные пользователя
+      localStorage.setItem('user', JSON.stringify(user));
+      if (user.profile) {
+        localStorage.setItem('username', user.profile.username);
+        localStorage.setItem('userAvatarUrl', user.profile.avatarUrl);
+        localStorage.setItem('userSignature', user.profile.signature || '');
+      }
     }
   },
   
