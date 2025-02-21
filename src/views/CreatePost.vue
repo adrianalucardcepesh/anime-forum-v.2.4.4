@@ -589,9 +589,14 @@ async function submitPost() {
         toast.error('Категория не указана');
         return;
     }
+
+    // Получаем HTML-контент из редактора
+    const editor = document.querySelector('[contenteditable="true"]');
+    const htmlContent = editor.innerHTML;
+
     const postData = {
       title: postTitle.value.trim(),
-      content: postContent.value.trim(),
+      content: htmlContent, // Сохраняем HTML-контент
       categoryId: categoryId.value,
       pictures: images.value,
       videos: store.state.video.uploadedVideos,
@@ -608,7 +613,7 @@ async function submitPost() {
     // Очистка формы
     console.log('[CreatePost] Очистка формы');
     postTitle.value = '';
-    postContent.value = '';
+    editor.innerHTML = ''; // Очищаем редактор
     tags.value = [];
     images.value = [];
     attachments.value = [];

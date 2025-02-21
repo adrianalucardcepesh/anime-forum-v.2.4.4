@@ -10,6 +10,7 @@ import categoriesModule from './modules/categories.js';
 import profileModule from './modules/profile.js';
 import emojiModule from './modules/emoji.js';
 import createModule from './modules/create.js';
+import postsModule from './modules/posts.js';
 
 const store = createStore({
   modules: {
@@ -22,7 +23,8 @@ const store = createStore({
     categories: categoriesModule,
     profile: profileModule,
     emoji: emojiModule,
-    create: createModule
+    create: createModule,
+    posts: postsModule
   }
 });
 

@@ -95,6 +95,37 @@ export default {
     },
     SET_ERROR(state, error) {
       state.error = error
+    },
+    ADD_COMMENT(state, { postId, comment }) {
+      const post = state.posts.find(p => p.id === postId);
+      if (post) {
+        if (!post.comments) {
+          post.comments = [];
+        }
+        post.comments.push(comment);
+      }
+    },
+    UPDATE_COMMENT_LIKES(state, { postId, commentId, increment }) {
+      const post = state.posts.find(p => p.id === postId);
+      if (post && post.comments) {
+        const comment = post.comments.find(c => c.id === commentId);
+        if (comment) {
+          comment.likes = (comment.likes || 0) + increment;
+          comment.isLiked = increment > 0;
+        }
+      }
+    },
+    ADD_REPLY_TO_COMMENT(state, { postId, commentId, reply }) {
+      const post = state.posts.find(p => p.id === postId);
+      if (post && post.comments) {
+        const comment = post.comments.find(c => c.id === commentId);
+        if (comment) {
+          if (!comment.replies) {
+            comment.replies = [];
+          }
+          comment.replies.push(reply);
+        }
+      }
     }
   },
 
@@ -103,19 +134,45 @@ export default {
     async fetchPostById({ commit }, postId) {
       commit('SET_LOADING', true);
       try {
-        const postRef = dbRef(database, `posts/${postId}`);
-        const snapshot = await get(postRef);
+        const db = getDatabase();
         
-        if (snapshot.exists()) {
-          const postData = {
-            id: snapshot.key,
-            ...snapshot.val()
-          };
-          commit('SET_CURRENT_POST', postData);
-          return postData;
-        } else {
-          throw new Error('Пост не найден');
+        // Сначала попробуем найти категорию, содержащую этот пост
+        const categoriesRef = dbRef(db, 'categories');
+        const categoriesSnapshot = await get(categoriesRef);
+        
+        if (categoriesSnapshot.exists()) {
+          const categories = categoriesSnapshot.val();
+          
+          // Ищем пост во всех категориях
+          for (const categoryId in categories) {
+            if (categories[categoryId].posts && categories[categoryId].posts[postId]) {
+              const postData = {
+                id: postId,
+                categoryId,
+                ...categories[categoryId].posts[postId]
+              };
+              
+              // Если есть ID автора, загружаем его профиль
+              if (postData.authorId) {
+                const authorRef = dbRef(db, `users/${postData.authorId}/profile`);
+                const authorSnapshot = await get(authorRef);
+                if (authorSnapshot.exists()) {
+                  postData.author = {
+                    id: postData.authorId,
+                    ...authorSnapshot.val()
+                  };
+                }
+              }
+              
+              commit('SET_POST', postData);
+              commit('SET_CURRENT_POST', postData);
+              return postData;
+            }
+          }
         }
+        
+        console.error('Пост не найден в категориях');
+        throw new Error('Пост не найден');
       } catch (error) {
         console.error('Ошибка при загрузке поста:', error);
         commit('SET_ERROR', error.message);
@@ -517,6 +574,81 @@ export default {
         console.error('Ошибка при создании ответа:', error)
         commit('SET_ERROR', error.message)
         throw error
+      }
+    },
+
+    async createComment({ commit, rootState }, commentData) {
+      try {
+        const { currentUser } = rootState.auth;
+        const newComment = {
+          id: Date.now().toString(),
+          content: commentData.content,
+          createdAt: new Date().toISOString(),
+          author: {
+            id: currentUser.uid,
+            username: currentUser.displayName,
+            avatarUrl: currentUser.photoURL,
+            signature: currentUser.signature || 'Участник форума',
+            online: true
+          },
+          likes: 0,
+          isLiked: false,
+          attachments: commentData.attachments || [],
+          replies: []
+        };
+
+        // Сохраняем комментарий в Firebase
+        await firebase.database().ref(`posts/${commentData.postId}/comments/${newComment.id}`).set(newComment);
+        
+        commit('ADD_COMMENT', { postId: commentData.postId, comment: newComment });
+        return newComment;
+      } catch (error) {
+        console.error('Error creating comment:', error);
+        throw error;
+      }
+    },
+
+    async likeComment({ commit, rootState }, { postId, commentId }) {
+      try {
+        const { currentUser } = rootState.auth;
+        const likeRef = firebase.database().ref(`posts/${postId}/comments/${commentId}/likes/${currentUser.uid}`);
+        
+        const snapshot = await likeRef.once('value');
+        if (snapshot.exists()) {
+          // Убираем лайк
+          await likeRef.remove();
+          commit('UPDATE_COMMENT_LIKES', { postId, commentId, increment: -1 });
+        } else {
+          // Добавляем лайк
+          await likeRef.set(true);
+          commit('UPDATE_COMMENT_LIKES', { postId, commentId, increment: 1 });
+        }
+      } catch (error) {
+        console.error('Error liking comment:', error);
+        throw error;
+      }
+    },
+
+    async replyToComment({ commit, rootState }, { postId, commentId, content }) {
+      try {
+        const { currentUser } = rootState.auth;
+        const reply = {
+          id: Date.now().toString(),
+          content,
+          createdAt: new Date().toISOString(),
+          author: {
+            id: currentUser.uid,
+            username: currentUser.displayName,
+            avatarUrl: currentUser.photoURL
+          }
+        };
+
+        await firebase.database().ref(`posts/${postId}/comments/${commentId}/replies/${reply.id}`).set(reply);
+        commit('ADD_REPLY_TO_COMMENT', { postId, commentId, reply });
+        return reply;
+      } catch (error) {
+        console.error('Error replying to comment:', error);
+        throw error;
       }
     }
   },
