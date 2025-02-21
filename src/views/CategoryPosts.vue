@@ -47,7 +47,7 @@
                 <!-- Аватар и информация об авторе -->
                 <div class="flex-shrink-0 group">
                   <div class="relative">
-                    <div class="w-20 h-20 rounded-full overflow-hidden ring-4 ring-purple-500/30 group-hover:ring-purple-500/50 transition-all duration-300">
+                    <div class="w-20 ml-5  h-20 rounded-full overflow-hidden ring-4 ring-purple-500/30 group-hover:ring-purple-500/50 transition-all duration-300">
                       <img :src="post.authorAvatar || '/image/empty_avatar.png'"
                            :alt="post.authorName"
                            class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300">
