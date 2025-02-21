@@ -35,19 +35,17 @@
                 <div class="flex-shrink-0 group">
                   <div class="relative">
                     <div class="w-20 h-20 rounded-full overflow-hidden ring-4 ring-purple-500/30 group-hover:ring-purple-500/50 transition-all duration-300">
-                      <img :src="post.authorAvatar || '/images/default-avatar.png'"
+                      <img :src="post.authorAvatar || '/image/empty_avatar.png'"
                            :alt="post.authorName"
                            class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300">
                     </div>
-                    <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 rounded-full border-2 border-white dark:border-gray-800 animate-pulse"
-                         v-if="post.authorOnline"></div>
                   </div>
                   <div class="mt-3 text-center">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300">
                       {{ post.authorName }}
                     </h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
-                      {{ post.authorSignature || 'Участник форума' }}
+                      {{ post.authorSignature }}
                     </p>
                   </div>
                 </div>
@@ -152,25 +150,34 @@ onMounted(async () => {
       
       // Подписываемся на обновления постов в реальном времени
       const postsRef = dbRef(db, `categories/${categoryId}/posts`);
-      onValue(postsRef, (snapshot) => {
+      onValue(postsRef, async (snapshot) => {
         if (snapshot.exists()) {
           const postsData = snapshot.val();
           console.log('Все посты в категории:', postsData);
           
-          // Преобразуем посты в массив
-          const filteredPosts = Object.entries(postsData)
-            .map(([id, post]) => ({
+          // Преобразуем посты в массив с получением данных пользователей
+          const postsPromises = Object.entries(postsData).map(async ([id, post]) => {
+            // Получаем данные профиля автора
+            const authorRef = dbRef(db, `users/${post.authorId}/profile`);
+            const authorSnapshot = await get(authorRef);
+            const authorProfile = authorSnapshot.exists() ? authorSnapshot.val() : null;
+            
+            return {
               id,
               ...post,
-              authorName: post.authorName || 'Анонимный пользователь',
-              authorSignature: post.authorSignature || '',
-              authorOnline: Math.random() > 0.5,
+              authorName: authorProfile?.username || post.authorName || 'Анонимный пользователь',
+              authorAvatar: authorProfile?.avatarUrl || '/image/empty_avatar.png',
+              authorSignature: authorProfile?.signature || 'Участник форума',
+              authorOnline: false, // Можно добавить логику определения онлайн статуса
               likes: post.likes || 0,
               comments: post.comments || [],
-              views: post.views || Math.floor(Math.random() * 100),
+              views: post.views || 0,
               tags: post.tags || ['форум', 'обсуждение']
-            }));
+            };
+          });
           
+          // Ждем загрузки всех данных пользователей
+          const filteredPosts = await Promise.all(postsPromises);
           console.log('Преобразованные посты:', filteredPosts);
           posts.value = filteredPosts;
         } else {
@@ -180,15 +187,13 @@ onMounted(async () => {
       });
     }
   } catch (error) {
-    console.error('Error fetching category data:', error);
+    console.error('Ошибка при загрузке данных:', error);
   }
 });
 
 // Сортировка постов по дате создания (новые сверху)
 const sortedPosts = computed(() => {
-  return [...posts.value].sort((a, b) => 
-    new Date(b.createdAt) - new Date(a.createdAt)
-  );
+  return [...posts.value].sort((a, b) => b.createdAt - a.createdAt);
 });
 
 // Форматирование даты
@@ -196,9 +201,9 @@ const formatDate = (timestamp) => {
   if (!timestamp) return '';
   const date = new Date(timestamp);
   return date.toLocaleDateString('ru-RU', {
-    year: 'numeric',
+    day: '2-digit',
     month: 'long',
-    day: 'numeric'
+    year: 'numeric'
   });
 };
 

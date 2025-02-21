@@ -43,11 +43,18 @@ export default {
           throw new Error('Не указана категория для поста');
         }
 
+        // Получаем данные профиля пользователя из базы данных
+        const userProfileRef = ref(db, `users/${user.uid}/profile`);
+        const userProfileSnapshot = await get(userProfileRef);
+        const userProfile = userProfileSnapshot.val() || {};
+
         const newPostData = {
           ...postData,
           userId: user.uid,
-          authorName: user.displayName || 'Анонимный пользователь',
-          authorAvatar: user.photoURL || '/images/default-avatar.png',
+          authorId: user.uid, // Добавляем authorId для связи с профилем
+          authorName: userProfile.username || 'Анонимный пользователь',
+          authorAvatar: userProfile.avatarUrl || '/image/empty_avatar.png',
+          authorSignature: userProfile.signature || 'Участник форума',
           createdAt: new Date().toISOString()
         };
 
