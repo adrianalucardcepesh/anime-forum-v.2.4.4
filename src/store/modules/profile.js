@@ -163,7 +163,7 @@ const actions = {
         // Обновляем локальное состояние
         console.log('Обновляем локальное состояние');
         commit('UPDATE_AVATAR', avatarUrl);
-        return { success:з true, avatarUrl };
+        return { success:зtrue, avatarUrl };
       } else {
         console.error('Структура ответа сервера:', uploadResponse.data);
         throw new Error(`Неверный формат ответа сервера: ${JSON.stringify(uploadResponse.data)}`);
