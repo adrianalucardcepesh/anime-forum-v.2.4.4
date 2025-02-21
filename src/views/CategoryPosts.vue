@@ -1,7 +1,14 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 py-8 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
-      <!-- Заголовок категории с анимацией -->
+      <!-- Навигационные кнопки -->
+      <div class="mb-8 flex justify-between items-center animate-slide-in-right">
+
+
+
+      </div>
+  
+        <!-- Заголовок категории с анимацией -->
       <div class="text-center mb-12 animate-fade-in">
         <h1 class="text-6xl sm:text-7xl md:text-8xl font-black tracking-tight bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 dark:from-purple-400 dark:via-pink-400 dark:to-blue-400 bg-clip-text text-transparent mb-4 transform hover:scale-105 transition-transform duration-300">
           {{ categoryName.toUpperCase() }}
@@ -12,9 +19,15 @@
       </div>
 
       <!-- Кнопка создания нового поста -->
-      <div class="mb-8 flex justify-end animate-slide-in-right">
+      <div class="mb-8 flex justify-between space-x-4 animate-slide-in-right">
+        <router-link to="/" 
+          class="inline-flex items-center group px-6 py-4 text-lg font-medium text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+          <i class="fas fa-arrow-left mr-3 transform group-hover:-translate-x-1 transition-transform duration-300"></i>
+          На главную
+        </router-link>
+        
         <router-link :to="{ name: 'create-post', params: { categoryId: categoryId } }"
-                    class="group px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+          class="group px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
           <div class="flex items-center space-x-3">
             <i class="fas fa-plus text-xl transform group-hover:rotate-90 transition-transform duration-300"></i>
             <span class="text-lg font-medium tracking-wide">Создать пост</span>
