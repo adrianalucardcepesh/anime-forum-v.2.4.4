@@ -48,9 +48,10 @@
                 <div class="flex-shrink-0 group">
                   <div class="relative">
                     <div class="w-20 ml-5  h-20 rounded-full overflow-hidden ring-4 ring-purple-500/30 group-hover:ring-purple-500/50 transition-all duration-300">
-                      <img :src="post.authorAvatar || '/image/empty_avatar.png'"
+                      <img :src="post.authorAvatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(post.authorName) + '&background=random'"
                            :alt="post.authorName"
-                           class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300">
+                           class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
+                           @error="handleAvatarError">
                     </div>
                   </div>
                   <div class="mt-3 text-center">
@@ -128,8 +129,10 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { getDatabase, ref as dbRef, get, onValue } from 'firebase/database';
+import { useStore } from 'vuex';
 
 const route = useRoute();
+const store = useStore();
 const categoryId = route.params.categoryId;
 const posts = ref([]);
 const categoryName = ref('');
@@ -158,32 +161,41 @@ onMounted(async () => {
           
           // Преобразуем посты в массив с получением данных пользователей
           const postsPromises = Object.entries(postsData).map(async ([id, post]) => {
-            // Получаем данные профиля автора
-            const authorRef = dbRef(db, `users/${post.authorId}/profile`);
-            const authorSnapshot = await get(authorRef);
-            const authorProfile = authorSnapshot.exists() ? authorSnapshot.val() : null;
-            
-            return {
-              id,
-              ...post,
-              authorName: authorProfile?.username || post.authorName || 'Анонимный пользователь',
-              authorAvatar: authorProfile?.avatarUrl || '/image/empty_avatar.png',
-              authorSignature: authorProfile?.signature || 'Участник форума',
-              authorOnline: false, // Можно добавить логику определения онлайн статуса
-              likes: post.likes || 0,
-              comments: post.comments || [],
-              views: post.views || 0,
-              tags: post.tags || ['форум', 'обсуждение']
-            };
+            try {
+              // Получаем профиль пользователя через Vuex
+              await store.dispatch('profile/fetchProfile', post.authorId);
+              const authorProfile = store.getters['profile/getProfile'];
+              
+              return {
+                id,
+                ...post,
+                authorName: authorProfile?.username || post.authorName || 'Анонимный пользователь',
+                authorAvatar: authorProfile?.avatarUrl || '/image/empty_avatar.png',
+                authorSignature: authorProfile?.signature || 'Участник форума',
+                authorOnline: false,
+                likes: post.likes || 0,
+                comments: post.comments || [],
+                views: post.views || 0,
+                tags: post.tags || ['форум', 'обсуждение']
+              };
+            } catch (error) {
+              console.error(`Ошибка при получении профиля пользователя ${post.authorId}:`, error);
+              return {
+                id,
+                ...post,
+                authorName: post.authorName || 'Анонимный пользователь',
+                authorAvatar: '/image/empty_avatar.png',
+                authorSignature: 'Участник форума',
+                authorOnline: false,
+                likes: post.likes || 0,
+                comments: post.comments || [],
+                views: post.views || 0,
+                tags: post.tags || ['форум', 'обсуждение']
+              };
+            }
           });
           
-          // Ждем загрузки всех данных пользователей
-          const filteredPosts = await Promise.all(postsPromises);
-          console.log('Преобразованные посты:', filteredPosts);
-          posts.value = filteredPosts;
-        } else {
-          console.log('Нет постов в категории');
-          posts.value = [];
+          posts.value = await Promise.all(postsPromises);
         }
       });
     }
@@ -216,6 +228,14 @@ const formatTime = (timestamp) => {
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+// Обработчик ошибки загрузки аватара
+const handleAvatarError = (event) => {
+  // Если основное изображение не загрузилось, используем сгенерированный аватар
+  const img = event.target;
+  const userName = img.alt || 'User';
+  img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`;
 };
 </script>
 

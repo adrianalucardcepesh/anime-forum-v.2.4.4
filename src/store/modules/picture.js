@@ -113,15 +113,15 @@ const actions = {
       const compressedFile = await dispatch('compressImage', file);
       
       const formData = new FormData();
-      formData.append('image', compressedFile);
+      formData.append('file', compressedFile);
       
       const SERVER_URL = state.baseUrl;
-      console.log('Отправка запроса на:', `${SERVER_URL}/upload/image/${userId}`);
+      console.log('Отправка запроса на:', `${SERVER_URL}/upload`);
       console.log('Тип файла:', compressedFile.type);
       console.log('Размер отправляемого файла:', (compressedFile.size / 1024).toFixed(2), 'KB');
 
       // Загружаем изображение через axios
-      const response = await axios.post(`${SERVER_URL}/upload/image/${userId}`, formData, {
+      const response = await axios.post(`${SERVER_URL}/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Accept': '*/*'
@@ -134,10 +134,8 @@ const actions = {
 
       console.log('picture/uploadImage - Ответ сервера:', response.data);
 
-      let imageUrl = response.data.imageUrl || response.data.fileUrl;
+      let imageUrl = response.data.fileUrl;
       if (imageUrl) {
-        // Заменяем localhost на реальный IP сервера
-        imageUrl = imageUrl.replace('http://localhost:3000', SERVER_URL);
         commit('ADD_IMAGE', imageUrl);
         return imageUrl;
       } else {

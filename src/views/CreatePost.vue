@@ -635,24 +635,26 @@ function removeTag(index) {
 }
 
 async function handleFileUpload(event) {
-  console.log('handleFileUpload called');
-  const files = Array.from(event.target.files);
-  const allowedImageTypes = ['image/png', 'image/jpeg', 'image/gif'];
-  
-  for (const file of files) {
-    try {
-      if (allowedImageTypes.includes(file.type)) {
-        await store.dispatch('picture/uploadImage', file);
-        toast.success(`Изображение ${file.name} успешно загружено`);
-      } else {
-        toast.error(`Формат файла ${file.name} не поддерживается`);
+  const files = event.target.files;
+  if (!files.length) return;
+
+  try {
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        console.error('Можно загружать только изображения');
+        continue;
       }
-    } catch (error) {
-      console.error('Ошибка при загрузке файла:', error);
-      toast.error(error.message || `Ошибка при загрузке файла ${file.name}`);
+
+      // Загружаем изображение через Vuex action
+      const imageUrl = await store.dispatch('picture/uploadImage', file);
+      
+      if (imageUrl) {
+        console.log('Изображение успешно загружено:', imageUrl);
+      }
     }
+  } catch (error) {
+    console.error('Ошибка при загрузке изображения:', error);
   }
-  event.target.value = '';
 }
 
 // Функция для обработки загрузки видео
